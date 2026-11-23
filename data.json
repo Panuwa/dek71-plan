@@ -1,6 +1,6 @@
 {
  "version": 1,
- "updated": "2026-11-23T13:40:00Z",
+ "updated": "2026-11-23T14:06:16.124Z",
  "chapters": {
   "bio:0": 1,
   "bio:1": 1,
@@ -54,16 +54,17 @@
   "phys:6": 1,
   "phys:7": 1,
   "phys:8": 1,
-  "phys:9": 1
+  "phys:9": 1,
+  "math:13": 3
  },
  "portfolio": {},
  "hours": {},
  "settings": {
-  "alevel": "2028-03-11",
   "content": "2027-05-15",
   "port": "2027-09-21",
-  "target": 74,
-  "tpat1": "2028-01-29"
+  "tpat1": "2028-01-29",
+  "alevel": "2028-03-11",
+  "target": 74
  },
  "evals": [],
  "mocks": []
