@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DEK71 Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F6F6;--panel:#FFFFFF;--ink:#17222B;--muted:#5A6A74;--line:#D8E0E2;--soft:#E9EFEF;
+  --scrub:#0F766E;--scrub-soft:#D5EEEA;--pulse:#C93636;--pulse-soft:#F8DEDC;--amber:#A86A12;--amber-soft:#F6E7CC;
+  --zone:rgba(15,118,110,.10);
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F161B;--panel:#162028;--ink:#E4ECEF;--muted:#93A4AD;--line:#26343D;--soft:#1D2A33;
+  --scrub:#3DBDAE;--scrub-soft:#16413D;--pulse:#F07171;--pulse-soft:#47201F;--amber:#E5A846;--amber-soft:#43301A;--zone:rgba(61,189,174,.14);}}
+:root[data-theme="dark"]{--bg:#0F161B;--panel:#162028;--ink:#E4ECEF;--muted:#93A4AD;--line:#26343D;--soft:#1D2A33;
+  --scrub:#3DBDAE;--scrub-soft:#16413D;--pulse:#F07171;--pulse-soft:#47201F;--amber:#E5A846;--amber-soft:#43301A;--zone:rgba(61,189,174,.14);}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;font-size:15px;line-height:1.6;font-variant-numeric:tabular-nums}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+h1{font-size:22px;font-weight:600;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:14px;margin:2px 0 0}
+.sync{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--scrub)}
+nav{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:20px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+nav button{appearance:none;border:0;background:none;color:var(--muted);font:inherit;font-size:14px;padding:10px 14px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-color:var(--scrub);font-weight:500}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--scrub);outline-offset:2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:760px){.g2,.g3{grid-template-columns:minmax(0,1fr)}}
+h2{font-size:16px;font-weight:600;margin:0 0 10px}
+h3{font-size:14px;font-weight:500;margin:0 0 8px;color:var(--muted)}
+.big{font-size:52px;font-weight:600;line-height:1;letter-spacing:-.02em}
+.big small{font-size:18px;color:var(--muted);font-weight:400;margin-left:6px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.tag.ok{background:var(--scrub-soft);color:var(--scrub)}
+.tag.bad{background:var(--pulse-soft);color:var(--pulse)}
+.tag.ev{background:var(--amber-soft);color:var(--amber)}
+.count{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line)}
+.count:last-child{border:0}
+.count b{font-size:22px;font-weight:600}
+.count span{color:var(--muted);font-size:13px}
+svg text{font-family:inherit}
+.bar{position:relative;height:10px;background:var(--soft);border-radius:5px;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px}
+.mark{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.row{display:grid;grid-template-columns:72px minmax(0,1fr) 92px;gap:10px;align-items:center;font-size:13px;padding:6px 0}
+.row .r{text-align:right;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{appearance:none;font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:7px;padding:5px 10px;cursor:pointer;text-align:left}
+.chip[data-s="1"]{background:var(--soft);border-color:var(--muted)}
+.chip[data-s="2"]{background:var(--scrub-soft);border-color:var(--scrub);color:var(--scrub)}
+.chip[data-s="3"]{background:var(--pulse-soft);border-color:var(--pulse);color:var(--pulse)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin:4px 0 14px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line);background:var(--sw)}
+form{display:grid;gap:10px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+input,select,textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%}
+.btn{appearance:none;font:inherit;font-size:14px;border-radius:7px;padding:8px 14px;cursor:pointer;border:1px solid var(--scrub);background:var(--scrub);color:#fff;font-weight:500;justify-self:start}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line);font-weight:400}
+.err{color:var(--pulse);font-size:13px;min-height:1em}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500}
+.tw{overflow-x:auto}
+.del{appearance:none;border:0;background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:13px}
+.del:hover{color:var(--pulse)}
+.note{font-size:13px;color:var(--muted);margin:6px 0 0}
+.pf{display:grid;grid-template-columns:28px minmax(0,1fr) minmax(0,140px);gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.pf:last-child{border:0}
+.pf input[type=checkbox]{width:18px;height:18px;accent-color:var(--scrub)}
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+[hidden]{display:none!important}
+:root{--border:var(--line);--surface:var(--panel);--danger:var(--pulse);--text:var(--ink);--b-bd:var(--scrub);
+ --g-bg:#F1EFE8;--g-tx:#444441;--t-bg:#E1F5EE;--t-tx:#085041;--p-bg:#EEEDFE;--p-tx:#3C3489;--c-bg:#FAECE7;--c-tx:#712B13;
+ --k-bg:#FBEAF0;--k-tx:#72243E;--n-bg:#EAF3DE;--n-tx:#27500A;--b-bg:#E6F1FB;--b-tx:#0C447C;--s-bg:#FAEEDA;--s-tx:#633806}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --g-bg:#444441;--g-tx:#F1EFE8;--t-bg:#085041;--t-tx:#E1F5EE;--p-bg:#3C3489;--p-tx:#EEEDFE;--c-bg:#712B13;--c-tx:#FAECE7;
+ --k-bg:#72243E;--k-tx:#FBEAF0;--n-bg:#27500A;--n-tx:#EAF3DE;--b-bg:#0C447C;--b-tx:#E6F1FB;--s-bg:#633806;--s-tx:#FAEEDA}}
+#pl{grid-template-columns:minmax(0,1fr)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.week{display:grid;grid-template-columns:44px repeat(7,minmax(84px,1fr));gap:4px;min-width:660px}
+.dh{text-align:center;font-weight:600;font-size:13px}
+.wcol{position:relative;height:420px;background:var(--soft);border-radius:6px}
+.blk{position:absolute;left:2px;right:2px;border-radius:6px;padding:3px 5px;font-size:11px;line-height:1.3;overflow:hidden}
+.blk.eval{border:1px dashed var(--b-bd)}
+.gantt{display:grid;grid-template-columns:110px minmax(560px,1fr);gap:6px;align-items:center}
+.gl{font-size:12px;color:var(--muted)}
+.gr{position:relative;height:30px;background:var(--soft);border-radius:6px}
+.gr .blk{top:3px;height:22px;right:auto;white-space:nowrap}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px}
+.metric{background:var(--soft);border-radius:8px;padding:8px 12px}.metric .l{font-size:12px;color:var(--muted)}.metric .v{font-size:19px;font-weight:600}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>เส้นทาง DEK71 สู่แพทย์วชิระ</h1>
+    <p class="sub">เป้าคะแนน กสพท 74 · จบเนื้อหาวิทย์-คณิตก่อนขึ้น ม.6</p>
+  </div>
+  <div class="sync"><span class="dot" id="syncDot"></span><span id="syncTxt">กำลังโหลด…</span></div>
+</header>
+<nav role="tablist" id="tabs">
+  <button role="tab" data-t="ov" aria-selected="true">ภาพรวม</button>
+  <button role="tab" data-t="pl" aria-selected="false">แผน</button>
+  <button role="tab" data-t="ct" aria-selected="false">เนื้อหา</button>
+  <button role="tab" data-t="ev" aria-selected="false">ประเมินผล</button>
+  <button role="tab" data-t="mk" aria-selected="false">Mock</button>
+  <button role="tab" data-t="pf" aria-selected="false">Portfolio</button>
+  <button role="tab" data-t="st" aria-selected="false">ตั้งค่า</button>
+</nav>
+
+<section id="ov" class="grid">
+  <div class="grid g2">
+    <div class="panel">
+      <h3>คะแนน กสพท จาก Mock ล่าสุด</h3>
+      <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:10px">
+        <div class="big" id="lastScore">–<small>/ 74</small></div>
+        <span id="lastTag"></span>
+      </div>
+      <div id="chart" style="margin-top:12px"></div>
+    </div>
+    <div class="panel">
+      <h3>นับถอยหลัง</h3>
+      <div id="countdown"></div>
+    </div>
+  </div>
+  <div class="grid g2">
+    <div class="panel">
+      <h2>ความคืบหน้าเนื้อหา เทียบกับแผน</h2>
+      <p class="note" style="margin:-4px 0 8px">เส้นดำคือจุดที่ควรถึงวันนี้ ถ้าจะจบทันก่อนขึ้น ม.6</p>
+      <div id="pace"></div>
+    </div>
+    <div class="panel">
+      <h2>บทที่ต้องซ่อม</h2>
+      <div id="repair"></div>
+    </div>
+  </div>
+  <div class="grid g2">
+    <div class="panel">
+      <h2>ชั่วโมงอ่านรายสัปดาห์</h2>
+      <div id="hoursChart"></div>
+      <form id="hoursForm" style="grid-template-columns:1fr 1fr auto;align-items:end;margin-top:10px">
+        <label>สัปดาห์เริ่ม (จันทร์)<input type="date" id="hWeek" required></label>
+        <label>ชั่วโมงนอกเวลาเรียน<input type="number" id="hVal" min="0" max="100" step="0.5" required></label>
+        <button class="btn" type="submit">บันทึก</button>
+        <div class="err" id="hErr" style="grid-column:1/-1"></div>
+      </form>
+    </div>
+    <div class="panel">
+      <h2>ช่วยดูว่าควรเติมวิชาไหน</h2>
+      <p class="note" style="margin:-4px 0 8px">คะแนน Mock ล่าสุดเทียบเป้ารายวิชา</p>
+      <div id="gaps"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>ระยะของแผน</h2>
+    <div id="phases"></div>
+  </div>
+</section>
+
+<section id="pl" class="grid" hidden>
+  <div class="panel">
+    <h2>Block รายสัปดาห์ — ม.5 เทอม 2</h2>
+    <div class="metrics" id="plMetrics"></div>
+    <div class="legend" id="plLegend"></div>
+    <div class="scroll"><div class="week" id="plWeek"></div></div>
+    <p class="note">กติกา: เข้านอนไม่เกิน 22:30 · ถ้า Checkpoint วิชาไหนตก 2 เดือนติดกัน ให้เลื่อนเส้นชัยวิชานั้นไป ก.ค. 70 แทนการลดเวลานอน</p>
+  </div>
+  <div class="panel">
+    <h2>เส้นชัยรายวิชา ต.ค. 69 – พ.ค. 71</h2>
+    <p class="note" style="margin:-4px 0 10px">เส้นแดง = จบเนื้อหาทุกวิชา 15 พ.ค. 70 · ขีดสีเขียว = Checkpoint รายเดือน</p>
+    <div class="scroll"><div class="gantt" id="plGantt"></div></div>
+  </div>
+  <div class="panel">
+    <h2>ระบบประเมินผล 4 ชั้น</h2>
+    <div class="tw"><table>
+      <thead><tr><th>ระดับ</th><th>เมื่อไร</th><th>วัดอะไร</th><th>เกณฑ์ผ่าน</th><th>ถ้าไม่ผ่าน</th></tr></thead>
+      <tbody>
+        <tr><td>ท้ายบท</td><td>ทุกศุกร์ 17:30</td><td>บทที่เรียนในสัปดาห์</td><td>≥ 70%</td><td>ซ่อมวันอาทิตย์ 10:30</td></tr>
+        <tr><td>สอบย่อยสัปดาห์</td><td>ทุกอาทิตย์ 09:00</td><td>ทุกวิชาของสัปดาห์ ไม่เปิดโน้ต</td><td>≥ 70%</td><td>บทที่ต่ำกว่า 60% ซ่อมทันที</td></tr>
+        <tr><td>ประจำเดือน</td><td>อาทิตย์สุดท้ายของเดือน</td><td>สะสมทุกบทที่จบแล้ว</td><td>≥ 65%</td><td>เดือนถัดไปเพิ่ม block ซ่อม 2 ชม./สัปดาห์</td></tr>
+        <tr><td>Mock</td><td>พ.ค.70 / ส.ค.70 / พ.ย.70 / ก.พ.71</td><td>ข้อสอบจริง จับเวลา</td><td>≥60 / ≥66 / ≥70 / ≥74</td><td>ปรับสัดส่วนเวลารายวิชา</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="ct" hidden>
+  <div class="panel">
+    <h2>เช็กลิสต์เนื้อหา</h2>
+    <div class="legend">
+      <span style="--sw:var(--panel)">ยังไม่เรียน</span>
+      <span style="--sw:var(--soft)">เรียนแล้ว</span>
+      <span style="--sw:var(--scrub-soft)">ผ่านประเมิน ≥70%</span>
+      <span style="--sw:var(--pulse-soft)">ต้องซ่อม</span>
+    </div>
+    <p class="note" style="margin:-6px 0 14px">แตะบทเพื่อเปลี่ยนสถานะ ผลประเมินที่บันทึกแบบระบุบทจะอัปเดตสถานะให้เอง</p>
+    <div id="chapters" class="grid"></div>
+  </div>
+</section>
+
+<section id="ev" class="grid" hidden>
+  <div class="panel">
+    <h2>บันทึกผลประเมิน</h2>
+    <form id="evForm" novalidate>
+      <div class="fields">
+        <label>วันที่<input type="date" id="evDate"></label>
+        <label>ประเภท<select id="evType">
+          <option value="daily">ทดสอบท้ายบท</option>
+          <option value="weekly">สอบย่อยประจำสัปดาห์</option>
+          <option value="monthly">สอบประจำเดือน</option>
+        </select></label>
+        <label>วิชา<select id="evSubj"></select></label>
+        <label>บท (ถ้ามี)<select id="evChap"></select></label>
+        <label>คะแนน %<input type="number" id="evScore" min="0" max="100" step="0.1"></label>
+      </div>
+      <label>ข้อผิดหลัก / หมายเหตุ<input type="text" id="evNote" maxlength="200" placeholder="คำนวณพลาดเรื่องหน่วย, ลืมสูตร"></label>
+      <div class="err" id="evErr"></div>
+      <button class="btn" type="submit">บันทึกผล</button>
+    </form>
+  </div>
+  <div class="panel">
+    <h2>ประวัติการประเมิน</h2>
+    <div class="tw"><table><thead><tr><th>วันที่</th><th>ประเภท</th><th>วิชา / บท</th><th>คะแนน</th><th>หมายเหตุ</th><th></th></tr></thead><tbody id="evList"></tbody></table></div>
+  </div>
+</section>
+
+<section id="mk" class="grid" hidden>
+  <div class="panel">
+    <h2>บันทึก Mock เต็มชุด</h2>
+    <p class="note" style="margin:-4px 0 12px">ระบบคิดคะแนน กสพท ให้: TPAT1 30% + A-Level 70% (วิทย์ 40, คณิต 20, อังกฤษ 20, ไทย 10, สังคม 10)</p>
+    <form id="mkForm" novalidate>
+      <div class="fields">
+        <label>วันที่<input type="date" id="mkDate"></label>
+        <label>ชื่อชุด<input type="text" id="mkName" maxlength="60" placeholder="Mock 1"></label>
+        <label>TPAT1 (เต็ม 300)<input type="number" id="mk_tpat1" min="0" max="300" step="0.1"></label>
+      </div>
+      <div class="fields" id="mkSubj"></div>
+      <div class="err" id="mkErr"></div>
+      <button class="btn" type="submit">คำนวณและบันทึก</button>
+    </form>
+  </div>
+  <div class="panel">
+    <h2>ประวัติ Mock</h2>
+    <div class="tw"><table><thead><tr><th>วันที่</th><th>ชุด</th><th>TPAT1</th><th>ฟิสิกส์</th><th>เคมี</th><th>ชีวะ</th><th>คณิต</th><th>อังกฤษ</th><th>ไทย</th><th>สังคม</th><th>กสพท</th><th></th></tr></thead><tbody id="mkList"></tbody></table></div>
+  </div>
+</section>
+
+<section id="pf" hidden>
+  <div class="panel">
+    <h2>Portfolio checklist</h2>
+    <p class="note" style="margin:-4px 0 10px">คะแนน TBAT และ CU-AAT ต้องมีอายุไม่เกิน 1 ปี ณ วันยื่น · IELTS อายุ 2 ปี</p>
+    <div id="pfList"></div>
+  </div>
+</section>
+
+<section id="st" hidden>
+  <div class="panel">
+    <h2>วันสำคัญ</h2>
+    <p class="note" style="margin:-4px 0 12px">ค่าเริ่มต้นประมาณจากปฏิทิน TCAS70 แก้ได้เมื่อ TCAS71 ประกาศจริง</p>
+    <form id="stForm">
+      <div class="fields">
+        <label>จบเนื้อหา (ขึ้น ม.6)<input type="date" id="st_content"></label>
+        <label>ยื่น Portfolio จุฬาฯ<input type="date" id="st_port"></label>
+        <label>สอบ TPAT1<input type="date" id="st_tpat1"></label>
+        <label>สอบ A-Level<input type="date" id="st_alevel"></label>
+        <label>เป้าคะแนน กสพท<input type="number" id="st_target" min="50" max="100" step="0.1"></label>
+      </div>
+      <button class="btn" type="submit">บันทึกการตั้งค่า</button>
+    </form>
+  </div>
+  <div class="panel" style="margin-top:14px">
+    <h2>ซิงก์ข้อมูลผ่าน GitHub</h2>
+    <p class="note" style="margin:-4px 0 12px">ข้อมูลทั้งหมดเก็บในไฟล์ <code>data.json</code> ใน repo นี้ เครื่องไหนเปิดก็เห็นข้อมูลชุดเดียวกัน เครื่องที่จะ<b>บันทึก</b>ต้องใส่ token หนึ่งครั้ง (เก็บไว้ในเบราว์เซอร์เครื่องนั้นเท่านั้น) เครื่องที่ไม่มี token ดูได้อย่างเดียว</p>
+    <form id="ghForm">
+      <div class="fields">
+        <label>Owner<input type="text" id="ghOwner" placeholder="panuwa"></label>
+        <label>Repo<input type="text" id="ghRepo" placeholder="dek71-plan"></label>
+        <label>Branch<input type="text" id="ghBranch" placeholder="main"></label>
+      </div>
+      <label>GitHub token (fine-grained, สิทธิ์ Contents: Read and write เฉพาะ repo นี้)<input type="password" id="ghToken" autocomplete="off" placeholder="github_pat_..."></label>
+      <div class="err" id="ghErr"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn" type="submit">บันทึกและเชื่อมต่อ</button>
+        <button class="btn ghost" type="button" id="ghForget">ลบ token จากเครื่องนี้</button>
+        <button class="btn ghost" type="button" id="ghExport">ดาวน์โหลด JSON สำรอง</button>
+      </div>
+    </form>
+  </div>
+</section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const SUBJ=[
+ {k:'math',n:'คณิต',w:.14,t:70,ch:['เซต','ตรรกศาสตร์','จำนวนจริง','ฟังก์ชัน','เอกซ์โพเนนเชียลและลอการิทึม','เรขาคณิตวิเคราะห์','ฟังก์ชันตรีโกณมิติ','เมทริกซ์','เวกเตอร์','จำนวนเชิงซ้อน','หลักการนับ','ความน่าจะเป็น','ลำดับและอนุกรม','แคลคูลัสเบื้องต้น','สถิติ','การแจกแจงความน่าจะเป็น']},
+ {k:'phys',n:'ฟิสิกส์',w:.28/3,t:65,ch:['การวัดและบทนำ','การเคลื่อนที่แนวตรง','แรงและกฎการเคลื่อนที่','สมดุลกล','งานและพลังงาน','โมเมนตัมและการชน','การเคลื่อนที่แนวโค้ง','ฮาร์มอนิกอย่างง่าย','คลื่น','แสงเชิงฟิสิกส์','แสงเชิงเรขาคณิต','เสียง','ไฟฟ้าสถิต','ไฟฟ้ากระแส','แม่เหล็กและไฟฟ้า','คลื่นแม่เหล็กไฟฟ้า','ความร้อนและแก๊ส','ของแข็งและของไหล','ฟิสิกส์อะตอม','ฟิสิกส์นิวเคลียร์']},
+ {k:'chem',n:'เคมี',w:.28/3,t:75,ch:['อะตอมและสมบัติของธาตุ','พันธะเคมี','โมลและสูตรเคมี','สารละลาย','ปริมาณสัมพันธ์','แก๊ส','อัตราการเกิดปฏิกิริยา','สมดุลเคมี','กรด-เบส','ไฟฟ้าเคมี','เคมีอินทรีย์','พอลิเมอร์']},
+ {k:'bio',n:'ชีวะ',w:.28/3,t:80,ch:['เคมีพื้นฐานของสิ่งมีชีวิต','เซลล์และการแบ่งเซลล์','การถ่ายทอดทางพันธุกรรม','โครโมโซมและสารพันธุกรรม','เทคโนโลยีดีเอ็นเอ','วิวัฒนาการ','การสังเคราะห์ด้วยแสง','พืชดอก: การสืบพันธุ์','โครงสร้างพืช','การลำเลียงของพืช','การตอบสนองของพืช','ระบบย่อยอาหาร','ระบบหายใจ','ระบบหมุนเวียนเลือด','ระบบภูมิคุ้มกัน','ระบบขับถ่าย','ระบบประสาท','โครงกระดูกและการเคลื่อนที่','ระบบต่อมไร้ท่อ','การสืบพันธุ์ของสัตว์','พฤติกรรมของสัตว์','ความหลากหลายทางชีวภาพ','ระบบนิเวศและประชากร']},
+ {k:'eng',n:'อังกฤษ',w:.14,t:88,ch:[]},
+ {k:'thai',n:'ไทย',w:.07,t:75,ch:[]},
+ {k:'soc',n:'สังคม',w:.07,t:70,ch:[]}
+];
+const SMAP=Object.fromEntries(SUBJ.map(s=>[s.k,s]));
+const EVTYPE={daily:'ท้ายบท',weekly:'สอบย่อยสัปดาห์',monthly:'ประจำเดือน'};
+const PF=[
+ ['ielts','IELTS (เป้า ≥6.5)','คะแนน'],['cutep','CU-TEP (ทางเลือก)','คะแนน'],['tbat','TBAT ครั้งที่ 1','คะแนน / วันสอบ'],['tbat2','TBAT ครั้งที่ 2','คะแนน / วันสอบ'],
+ ['cuaat','CU-AAT','Math / Verbal'],['gpax','GPAX ถึง ม.5 (≥3.50)','GPAX'],['gpasci','GPA วิทย์-คณิต (≥3.50)','GPA'],['volunteer','กิจกรรมจิตอาสา / ทางการแพทย์','ชั่วโมง'],
+ ['file','แฟ้มผลงานเสร็จ','ลิงก์ / หมายเหตุ'],['essay','เรียงความ / SOP','หมายเหตุ'],['cu','ยื่นแพทย์จุฬาฯ','สถานะ'],['vajira','ยื่นแพทย์วชิระ','สถานะ'],['tu','ยื่นแพทย์ธรรมศาสตร์','สถานะ'],['kku','ยื่นแพทย์ มข.','สถานะ'],['interview','สัมภาษณ์','วัน / ผล']
+];
+const PLAN_START='2026-10-01';
+const CHECKS=[['2027-05-20',60,'Mock 1'],['2027-08-20',66,'Mock 2'],['2027-11-20',70,'Mock 3'],['2028-02-15',74,'Mock 4']];
+const PHASES=[['2026-10-01','2027-02-28','ปูพื้น + เรียนล่วงหน้า'],['2027-03-01','2027-05-15','ปิดเนื้อหา'],['2027-05-16','2027-09-30','ตะลุยรอบ 1 + Portfolio'],['2027-10-01','2027-12-31','ตะลุยรอบ 2'],['2028-01-01','2028-03-15','ซ้อมสอบ']];
+const VAJIRA_MIN=70.81;
+
+const S={chapters:{},portfolio:{},hours:{},settings:{content:'2027-05-15',port:'2027-09-21',tpat1:'2028-01-29',alevel:'2028-03-11',target:74},evals:[],mocks:[]};
+let db=null,readOnly=false;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const D=s=>new Date(s+'T00:00:00');
+const todayISO=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
+const thd=s=>D(s).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'});
+const days=s=>Math.ceil((D(s)-D(todayISO()))/864e5);
+const r1=n=>(Math.round(n*10)/10).toFixed(1);
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2400)}
+function monday(s){const d=D(s);const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function total(m){const sci=(+m.phys+ +m.chem+ +m.bio)/3;return (+m.tpat1/300)*30+.7*(sci*.4+ +m.math*.2+ +m.eng*.2+ +m.thai*.1+ +m.soc*.1)}
+
+const LS='dek71-tracker-v1';
+function lsLoad(){try{const v=JSON.parse(localStorage.getItem(LS)||'null');if(v)for(const k in v)if(k in S)S[k]=k==='settings'?{...S.settings,...v[k]}:v[k]}catch(e){}}
+function lsSave(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+
+// ---------- GitHub-backed storage ----------
+const GHK='dek71-gh';
+function ghCfg(){let c={};try{c=JSON.parse(localStorage.getItem(GHK)||'{}')}catch(e){}
+  const host=location.hostname.endsWith('.github.io')?location.hostname.split('.')[0]:'';
+  const seg=location.pathname.split('/').filter(Boolean)[0]||'';
+  return {owner:c.owner||host,repo:c.repo||(seg.endsWith('.html')?'':seg),branch:c.branch||'main',token:c.token||''}}
+function ghSaveCfg(c){try{localStorage.setItem(GHK,JSON.stringify(c))}catch(e){}}
+let ghSha=null,syncT=null,syncing=Promise.resolve(),dirty=false;
+const b64e=s=>{const b=new TextEncoder().encode(s);let x='';for(let i=0;i<b.length;i+=0x8000)x+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(x)};
+const b64d=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g,'')),c=>c.charCodeAt(0)));
+function setSync(on,txt){$('syncDot').classList.toggle('on',on);$('syncTxt').textContent=txt}
+function applyRemote(v){for(const k in v)if(k in S)S[k]=k==='settings'?{...S.settings,...v[k]}:v[k];
+  S.evals.forEach(e=>{if(!e.id)e.id='g'+Math.random().toString(36).slice(2,9)});S.mocks.forEach(e=>{if(!e.id)e.id='g'+Math.random().toString(36).slice(2,9)})}
+const api=(c,p='')=>`https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/contents/data.json${p}`;
+async function ghLoad(){
+  const c=ghCfg();
+  try{
+    if(c.token&&c.owner&&c.repo){
+      const r=await fetch(api(c,'?ref='+encodeURIComponent(c.branch)),{headers:{Authorization:'Bearer '+c.token,Accept:'application/vnd.github+json'},cache:'no-store'});
+      if(r.status===401||r.status===403){setSync(false,'token ใช้ไม่ได้ · ดูอย่างเดียว');readOnly=true;return ghLoadPublic()}
+      if(r.status===404){ghSha=null;setSync(true,'ซิงก์ GitHub (ยังไม่มี data.json)');return}
+      if(!r.ok)throw new Error(r.status);
+      const j=await r.json();ghSha=j.sha;applyRemote(JSON.parse(b64d(j.content)));lsSave();renderAll();
+      readOnly=false;setSync(true,'ซิงก์ GitHub');
+    }else{readOnly=true;await ghLoadPublic()}
+  }catch(e){setSync(false,'ออฟไลน์ · ใช้ข้อมูลในเครื่อง')}
+}
+async function ghLoadPublic(){
+  try{const r=await fetch('data.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;
+    applyRemote(await r.json());lsSave();renderAll();setSync(false,'ดูอย่างเดียว · ใส่ token ในแท็บตั้งค่าเพื่อบันทึก')}
+  catch(e){setSync(false,'ใช้ข้อมูลในเครื่อง')}
+}
+function snapshot(){return JSON.stringify({version:1,updated:new Date().toISOString(),chapters:S.chapters,portfolio:S.portfolio,hours:S.hours,settings:S.settings,evals:S.evals,mocks:S.mocks},null,1)}
+function scheduleSync(delay=1200){
+  lsSave();const c=ghCfg();if(!c.token||!c.owner||!c.repo)return;
+  dirty=true;clearTimeout(syncT);setSync(true,'กำลังบันทึก…');
+  syncT=setTimeout(()=>{syncing=syncing.then(pushNow).catch(()=>{})},delay);
+}
+async function pushNow(retry=true){
+  if(!dirty)return;dirty=false;const c=ghCfg();
+  const body={message:'update tracker data',content:b64e(snapshot()),branch:c.branch};if(ghSha)body.sha=ghSha;
+  const r=await fetch(api(c),{method:'PUT',headers:{Authorization:'Bearer '+c.token,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify(body)});
+  if((r.status===409||r.status===422)&&retry){
+    const g=await fetch(api(c,'?ref='+encodeURIComponent(c.branch)),{headers:{Authorization:'Bearer '+c.token},cache:'no-store'});
+    if(g.ok){ghSha=(await g.json()).sha}else if(g.status===404)ghSha=null;
+    dirty=true;return pushNow(false);
+  }
+  if(!r.ok){dirty=true;setSync(false,'บันทึกขึ้น GitHub ไม่สำเร็จ ('+r.status+') · เก็บในเครื่องไว้ก่อน');toast('บันทึกขึ้น GitHub ไม่สำเร็จ');return}
+  ghSha=(await r.json()).content.sha;setSync(true,'ซิงก์ GitHub · บันทึกแล้ว');
+}
+function saveDoc(name,delay=500){if(readOnly){toast('เครื่องนี้ดูได้อย่างเดียว · ใส่ token ในแท็บตั้งค่า');return}scheduleSync(delay+700)}
+async function addEntry(coll,data){
+  if(readOnly){toast('เครื่องนี้ดูได้อย่างเดียว · ใส่ token ในแท็บตั้งค่า');return false}
+  data.id='l'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);S[coll].push(data);renderAll();scheduleSync();return true}
+async function delEntry(coll,id){if(readOnly){toast('เครื่องนี้ดูได้อย่างเดียว');return}S[coll]=S[coll].filter(x=>x.id!==id);renderAll();scheduleSync()}
+function handleErr(){toast('เชื่อมต่อไม่สำเร็จ ลองอีกครั้ง')}
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
+
+function chapState(sk,i){return S.chapters[sk+':'+i]||0}
+
+function renderChart(){
+  const W=640,H=250,L=36,R=12,T=14,B=28,y0=40,y1=90;
+  const x0=D(PLAN_START),x1=D(S.settings.alevel);
+  const X=s=>L+(D(s)-x0)/(x1-x0)*(W-L-R),Y=v=>T+(y1-Math.max(y0,Math.min(y1,v)))/(y1-y0)*(H-T-B);
+  const tg=+S.settings.target||74;
+  let g=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="กราฟคะแนน กสพท จาก Mock เทียบเป้า">`;
+  g+=`<rect x="${L}" y="${Y(tg)}" width="${W-L-R}" height="${Y(VAJIRA_MIN)-Y(tg)}" fill="var(--zone)"/>`;
+  [40,50,60,70,80,90].forEach(v=>{g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${Y(v)+4}" font-size="11" text-anchor="end" fill="var(--muted)">${v}</text>`});
+  g+=`<line x1="${L}" x2="${W-R}" y1="${Y(tg)}" y2="${Y(tg)}" stroke="var(--scrub)" stroke-dasharray="5 4"/><text x="${W-R}" y="${Y(tg)-5}" font-size="11" text-anchor="end" fill="var(--scrub)">เป้า ${tg}</text>`;
+  g+=`<text x="${W-R}" y="${Y(VAJIRA_MIN)+13}" font-size="11" text-anchor="end" fill="var(--muted)">วชิระต่ำสุดปี 69 ${VAJIRA_MIN}</text>`;
+  ['2027-01-01','2027-05-15','2027-10-01','2028-01-01'].forEach(s=>{g+=`<text x="${X(s)}" y="${H-8}" font-size="11" text-anchor="middle" fill="var(--muted)">${thd(s)}</text>`});
+  const t=todayISO();if(D(t)>=x0&&D(t)<=x1)g+=`<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H-B}" stroke="var(--ink)" stroke-opacity=".35"/><text x="${X(t)+4}" y="${T+10}" font-size="11" fill="var(--muted)">วันนี้</text>`;
+  CHECKS.forEach(([d,v,n])=>{g+=`<rect x="${X(d)-5}" y="${Y(v)-5}" width="10" height="10" rx="2" fill="none" stroke="var(--amber)" stroke-width="1.5"><title>${n} เป้า ${v}</title></rect>`});
+  const ms=[...S.mocks].sort((a,b)=>a.date.localeCompare(b.date));
+  if(ms.length){
+    g+=`<polyline fill="none" stroke="var(--pulse)" stroke-width="2.2" stroke-linejoin="round" points="${ms.map(m=>X(m.date)+','+Y(total(m))).join(' ')}"/>`;
+    ms.forEach(m=>{const v=total(m);g+=`<circle cx="${X(m.date)}" cy="${Y(v)}" r="4" fill="var(--panel)" stroke="var(--pulse)" stroke-width="2"><title>${esc(m.name||'Mock')} ${r1(v)}</title></circle>`});
+  }else g+=`<text x="${W/2}" y="${H/2}" font-size="13" text-anchor="middle" fill="var(--muted)">บันทึก Mock ครั้งแรกในแท็บ Mock เพื่อเริ่มกราฟ</text>`;
+  $('chart').innerHTML=g+`</svg><div class="legend" style="margin:6px 0 0"><span style="--sw:var(--pulse)">คะแนน Mock</span><span style="--sw:var(--zone)">โซนวชิระ (ต่ำสุดปี 69 ถึงเป้า)</span><span style="--sw:transparent">□ เป้าแต่ละ Mock</span></div>`;
+  const last=ms[ms.length-1];
+  if(last){const v=total(last),prev=ms.length>1?total(ms[ms.length-2]):null;
+    $('lastScore').innerHTML=`${r1(v)}<small>/ ${tg}</small>`;
+    const d=prev==null?'':` (${v-prev>=0?'+':''}${r1(v-prev)} จากครั้งก่อน)`;
+    $('lastTag').innerHTML=v>=tg?`<span class="tag ok">ถึงเป้าแล้ว${d}</span>`:v>=VAJIRA_MIN?`<span class="tag ev">อยู่ในโซนวชิระ ขาดอีก ${r1(tg-v)}${d}</span>`:`<span class="tag bad">ขาดอีก ${r1(tg-v)} ถึงเป้า${d}</span>`;
+  }else{$('lastScore').innerHTML=`–<small>/ ${tg}</small>`;$('lastTag').innerHTML=''}
+}
+
+function renderCountdown(){
+  const it=[['จบเนื้อหาวิทย์-คณิต',S.settings.content],['ยื่น Portfolio จุฬาฯ',S.settings.port],['สอบ TPAT1',S.settings.tpat1],['สอบ A-Level',S.settings.alevel]];
+  $('countdown').innerHTML=it.map(([n,d])=>{const x=days(d);return `<div class="count"><div><div>${n}</div><span>${thd(d)}</span></div><b>${x>0?x+' วัน':x===0?'วันนี้':'ผ่านแล้ว'}</b></div>`}).join('');
+}
+
+function renderPace(){
+  const s0=D(PLAN_START),s1=D(S.settings.content),now=D(todayISO());
+  const exp=Math.max(0,Math.min(1,(now-s0)/(s1-s0)));
+  $('pace').innerHTML=SUBJ.filter(s=>s.ch.length).map(s=>{
+    const n=s.ch.length;let l=0,p=0;s.ch.forEach((_,i)=>{const v=chapState(s.k,i);if(v>=1)l++;if(v===2)p++});
+    const lp=l/n,pp=p/n,behind=lp<exp-.05;
+    return `<div class="row"><div>${s.n}</div><div class="bar"><i style="width:${lp*100}%;background:var(--muted);opacity:.35"></i><i style="width:${pp*100}%;background:var(--scrub)"></i><span class="mark" style="left:calc(${exp*100}% - 1px)"></span></div><div class="r">${l}/${n} ${behind?'<span class="tag bad">ช้า</span>':''}</div></div>`;
+  }).join('')+`<div class="legend" style="margin:8px 0 0"><span style="--sw:var(--scrub)">ผ่านประเมิน</span><span style="--sw:var(--soft)">เรียนแล้ว</span></div>`;
+}
+
+function renderRepair(){
+  const rep=[];SUBJ.forEach(s=>s.ch.forEach((c,i)=>{if(chapState(s.k,i)===3)rep.push([s.n,c])}));
+  const low=[...S.evals].filter(e=>+e.score<70&&!e.chap).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4);
+  if(!rep.length&&!low.length){$('repair').innerHTML='<p class="note">ยังไม่มีบทค้างซ่อม ผลประเมินต่ำกว่า 70% จะขึ้นที่นี่</p>';return}
+  $('repair').innerHTML=rep.slice(0,10).map(([s,c])=>`<div class="count"><div>${esc(c)}</div><span class="tag bad">${s}</span></div>`).join('')+
+   low.map(e=>`<div class="count"><div>${SMAP[e.subj]?.n||e.subj} ${EVTYPE[e.type]||''}<br><span>${thd(e.date)} ${esc(e.note||'')}</span></div><span class="tag bad">${r1(+e.score)}%</span></div>`).join('')+
+   (rep.length>10?`<p class="note">และอีก ${rep.length-10} บท</p>`:'');
+}
+
+function renderHours(){
+  const W=520,H=130,B=22,T=10,max=30,tg=21;
+  const end=monday(todayISO());const wk=[];for(let i=7;i>=0;i--){const d=D(end);d.setDate(d.getDate()-7*i);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());wk.push(d.toISOString().slice(0,10))}
+  const bw=(W-30)/8;const Y=v=>T+(1-Math.min(v,max)/max)*(H-T-B);
+  let g=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="ชั่วโมงอ่านหนังสือ 8 สัปดาห์ล่าสุด">`;
+  g+=`<line x1="24" x2="${W}" y1="${Y(tg)}" y2="${Y(tg)}" stroke="var(--scrub)" stroke-dasharray="4 4"/><text x="20" y="${Y(tg)+4}" font-size="11" text-anchor="end" fill="var(--scrub)">${tg}</text>`;
+  wk.forEach((w,i)=>{const v=+(S.hours[w]||0),x=30+i*bw;
+    g+=`<rect x="${x+6}" y="${Y(v)}" width="${bw-12}" height="${H-B-Y(v)}" rx="3" fill="${v>=tg?'var(--scrub)':v>0?'var(--amber)':'var(--soft)'}"><title>${thd(w)}: ${v} ชม.</title></rect>`;
+    if(v)g+=`<text x="${x+bw/2}" y="${Y(v)-4}" font-size="11" text-anchor="middle" fill="var(--muted)">${v}</text>`;
+    g+=`<text x="${x+bw/2}" y="${H-6}" font-size="11" text-anchor="middle" fill="var(--muted)">${D(w).getDate()}/${D(w).getMonth()+1}</text>`});
+  $('hoursChart').innerHTML=g+'</svg>';
+}
+
+function renderGaps(){
+  const ms=[...S.mocks].sort((a,b)=>a.date.localeCompare(b.date));const m=ms[ms.length-1];
+  if(!m){$('gaps').innerHTML='<p class="note">จะแสดงหลังบันทึก Mock ครั้งแรก</p>';return}
+  const rows=[{n:'TPAT1',v:+m.tpat1/3,t:70,w:.3},...SUBJ.map(s=>({n:s.n,v:+m[s.k],t:s.t,w:s.w}))];
+  rows.forEach(r=>r.gain=Math.max(0,r.t-r.v)*r.w);
+  const top=[...rows].sort((a,b)=>b.gain-a.gain)[0];
+  $('gaps').innerHTML=rows.map(r=>{const low=r.v<30,ok=r.v>=r.t;
+    return `<div class="row"><div>${r.n}</div><div class="bar"><i style="width:${Math.min(100,r.v)}%;background:${low?'var(--pulse)':ok?'var(--scrub)':'var(--amber)'}"></i><span class="mark" style="left:calc(${r.t}% - 1px)"></span></div><div class="r">${r1(r.v)} / ${r.t}${low?' <span class="tag bad">&lt;30%</span>':''}</div></div>`}).join('')+
+   (top.gain>0?`<p class="note">ถ้าดันทุกวิชาขึ้นถึงเป้า <b>${top.n}</b> จะเพิ่มคะแนนรวมได้มากที่สุด (+${r1(top.gain)})</p>`:'<p class="note">ทุกวิชาถึงเป้าแล้ว</p>');
+}
+
+function renderPhases(){
+  const a=D(PHASES[0][0]),b=D(PHASES[PHASES.length-1][1]),P=s=>(D(s)-a)/(b-a)*100,t=todayISO();
+  let h=`<div style="position:relative;height:56px">`;
+  PHASES.forEach(([s,e,n],i)=>{const cur=t>=s&&t<=e;h+=`<div title="${n}" style="position:absolute;top:0;height:34px;left:${P(s)}%;width:calc(${P(e)-P(s)}% - 3px);border-radius:6px;padding:4px 7px;font-size:12px;overflow:hidden;white-space:nowrap;background:${cur?'var(--scrub)':'var(--soft)'};color:${cur?'#fff':'var(--muted)'}">${i+1} ${n}</div>`});
+  if(D(t)>=a&&D(t)<=b)h+=`<div style="position:absolute;top:-4px;height:44px;width:2px;background:var(--ink);left:${P(t)}%"></div>`;
+  h+=`<div style="position:absolute;top:38px;left:0;font-size:12px;color:var(--muted)">${thd(PHASES[0][0])}</div><div style="position:absolute;top:38px;right:0;font-size:12px;color:var(--muted)">${thd(PHASES[PHASES.length-1][1])}</div></div>`;
+  const cur=PHASES.find(([s,e])=>t>=s&&t<=e);
+  $('phases').innerHTML=h+(cur?`<p class="note">ตอนนี้อยู่ระยะ "${cur[2]}" เหลืออีก ${days(cur[1])} วันก่อนเข้าระยะถัดไป</p>`:'');
+}
+
+function renderChapters(){
+  $('chapters').innerHTML=SUBJ.filter(s=>s.ch.length).map(s=>`<div><h3>${s.n} (${s.ch.length} บท)</h3><div class="chips">${s.ch.map((c,i)=>`<button class="chip" data-c="${s.k}:${i}" data-s="${chapState(s.k,i)}">${esc(c)}</button>`).join('')}</div></div>`).join('');
+}
+
+function renderEvals(){
+  const l=[...S.evals].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,60);
+  $('evList').innerHTML=l.length?l.map(e=>{const s=SMAP[e.subj];const ch=e.chap&&s?s.ch[+e.chap.split(':')[1]]:'';
+    return `<tr><td>${thd(e.date)}</td><td><span class="tag ev">${EVTYPE[e.type]||''}</span></td><td>${s?s.n:'TPAT1'}${ch?'<br><span class="note">'+esc(ch)+'</span>':''}</td><td><span class="tag ${+e.score>=70?'ok':'bad'}">${r1(+e.score)}%</span></td><td>${esc(e.note||'')}</td><td><button class="del" data-del="evals:${esc(e.id)}" aria-label="ลบ">ลบ</button></td></tr>`}).join(''):'<tr><td colspan="6" class="note">บันทึกผลทดสอบท้ายบทครั้งแรกด้านบน</td></tr>';
+}
+
+function renderMocks(){
+  const l=[...S.mocks].sort((a,b)=>b.date.localeCompare(a.date));
+  $('mkList').innerHTML=l.length?l.map(m=>{const v=total(m);const c=x=>+x<30?' style="color:var(--pulse)"':'';
+    return `<tr><td>${thd(m.date)}</td><td>${esc(m.name||'Mock')}</td><td${+m.tpat1<90?' style="color:var(--pulse)"':''}>${m.tpat1}</td>${['phys','chem','bio','math','eng','thai','soc'].map(k=>`<td${c(m[k])}>${m[k]}</td>`).join('')}<td><b>${r1(v)}</b></td><td><button class="del" data-del="mocks:${esc(m.id)}" aria-label="ลบ">ลบ</button></td></tr>`}).join(''):'<tr><td colspan="12" class="note">ยังไม่มี Mock ใช้ข้อสอบ A-Level และ TPAT1 ของปีก่อนแบบจับเวลา</td></tr>';
+}
+
+function renderPortfolio(){
+  $('pfList').innerHTML=PF.map(([k,n,ph])=>{const v=S.portfolio[k]||{};return `<div class="pf"><input type="checkbox" data-pf="${k}" ${v.done?'checked':''} aria-label="${n}"><div>${n}</div><input type="text" data-pfv="${k}" value="${esc(v.val||'')}" placeholder="${ph}" maxlength="80"></div>`}).join('');
+}
+
+function renderSettings(){['content','port','tpat1','alevel','target'].forEach(k=>$('st_'+k).value=S.settings[k])}
+
+function renderAll(){renderChart();renderCountdown();renderPace();renderRepair();renderHours();renderGaps();renderPhases();renderChapters();renderEvals();renderMocks();if(!document.activeElement||!document.activeElement.dataset||!document.activeElement.dataset.pfv)renderPortfolio();renderSettings()}
+
+function fillEvalForm(){
+  $('evSubj').innerHTML=`<option value="tpat1">TPAT1</option>`+SUBJ.map(s=>`<option value="${s.k}">${s.n}</option>`).join('');
+  $('evSubj').value='math';
+  const upd=()=>{const s=SMAP[$('evSubj').value];$('evChap').innerHTML=`<option value="">ไม่ระบุ</option>`+(s?s.ch.map((c,i)=>`<option value="${s.k}:${i}">${esc(c)}</option>`).join(''):'')};
+  $('evSubj').onchange=upd;upd();
+  $('evDate').value=todayISO();$('mkDate').value=todayISO();
+  $('mkSubj').innerHTML=SUBJ.map(s=>`<label>${s.n} %<input type="number" id="mk_${s.k}" min="0" max="100" step="0.1"></label>`).join('');
+  $('hWeek').value=monday(todayISO());
+}
+
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('button[data-t]');if(!b)return;
+  document.querySelectorAll('#tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  ['ov','pl','ct','ev','mk','pf','st'].forEach(id=>$(id).hidden=id!==b.dataset.t);});
+
+$('chapters').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;
+  const k=b.dataset.c,n=((S.chapters[k]||0)+1)%4;if(n)S.chapters[k]=n;else delete S.chapters[k];
+  b.dataset.s=n;renderPace();renderRepair();saveDoc('chapters');});
+
+$('evForm').addEventListener('submit',async e=>{e.preventDefault();
+  const sc=$('evScore').value,d=$('evDate').value;
+  if(!d){$('evErr').textContent='เลือกวันที่ก่อน';return}
+  if(sc===''||+sc<0||+sc>100){$('evErr').textContent='ใส่คะแนนเป็นเปอร์เซ็นต์ 0–100';return}
+  $('evErr').textContent='';
+  const data={date:d,type:$('evType').value,subj:$('evSubj').value,chap:$('evChap').value,score:+sc,note:$('evNote').value.trim()};
+  if(await addEntry('evals',data)){
+    if(data.chap){S.chapters[data.chap]=data.score>=70?2:3;saveDoc('chapters',0);renderAll()}
+    $('evScore').value='';$('evNote').value='';toast('บันทึกผลแล้ว');}
+});
+['evScore','evDate'].forEach(id=>$(id).addEventListener('input',()=>$('evErr').textContent=''));
+
+$('mkForm').addEventListener('submit',async e=>{e.preventDefault();
+  const m={date:$('mkDate').value,name:$('mkName').value.trim()||'Mock',tpat1:$('mk_tpat1').value};
+  SUBJ.forEach(s=>m[s.k]=$('mk_'+s.k).value);
+  if(!m.date){$('mkErr').textContent='เลือกวันที่ก่อน';return}
+  if(m.tpat1===''||+m.tpat1<0||+m.tpat1>300){$('mkErr').textContent='TPAT1 ต้องอยู่ระหว่าง 0–300';return}
+  for(const s of SUBJ)if(m[s.k]===''||+m[s.k]<0||+m[s.k]>100){$('mkErr').textContent=`ใส่คะแนน${s.n} 0–100 ให้ครบทุกวิชา`;return}
+  $('mkErr').textContent='';
+  m.tpat1=+m.tpat1;SUBJ.forEach(s=>m[s.k]=+m[s.k]);
+  if(await addEntry('mocks',m)){toast(`บันทึกแล้ว คะแนน กสพท ${r1(total(m))}`);$('mkForm').querySelectorAll('input[type=number]').forEach(i=>i.value='');$('mkName').value=''}
+});
+$('mkForm').addEventListener('input',()=>$('mkErr').textContent='');
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;
+  const [c,id]=b.dataset.del.split(':');if(confirm('ลบรายการนี้?'))delEntry(c,id);});
+
+$('hoursForm').addEventListener('submit',e=>{e.preventDefault();
+  const w=$('hWeek').value,v=$('hVal').value;
+  if(!w||v===''||+v<0){$('hErr').textContent='ใส่สัปดาห์และจำนวนชั่วโมง';return}
+  $('hErr').textContent='';S.hours[monday(w)]=+v;renderHours();saveDoc('hours',0);$('hVal').value='';toast('บันทึกชั่วโมงแล้ว');});
+
+$('pfList').addEventListener('change',e=>{const k=e.target.dataset.pf;if(!k)return;S.portfolio[k]={...(S.portfolio[k]||{}),done:e.target.checked};saveDoc('portfolio',0)});
+$('pfList').addEventListener('input',e=>{const k=e.target.dataset.pfv;if(!k)return;S.portfolio[k]={...(S.portfolio[k]||{}),val:e.target.value};saveDoc('portfolio',900)});
+
+$('stForm').addEventListener('submit',e=>{e.preventDefault();
+  ['content','port','tpat1','alevel'].forEach(k=>{if($('st_'+k).value)S.settings[k]=$('st_'+k).value});
+  const t=+$('st_target').value;if(t>=50&&t<=100)S.settings.target=t;
+  saveDoc('settings',0);renderAll();toast('บันทึกการตั้งค่าแล้ว');});
+
+lsLoad();fillEvalForm();renderAll();
+
+// ---------- plan tab ----------
+(function(){
+const C={g:['--g-bg','--g-tx','โรงเรียน'],t:['--t-bg','--t-tx','วิทยาศาสตร์'],p:['--p-bg','--p-tx','คณิต'],c:['--c-bg','--c-tx','อังกฤษ'],s:['--s-bg','--s-tx','ไทย / สังคม'],k:['--k-bg','--k-tx','ทบทวน / ซ่อม'],b:['--b-bg','--b-tx','ประเมินผล'],n:['--n-bg','--n-tx','พัก']};
+const v=x=>`var(${x})`;
+const W=[['จ',[[8,16,'g','โรงเรียน'],[17.5,19,'p','คณิต พี่ปั้น'],[19.5,21,'t','ฟิสิกส์ ป๋ามัก']]],
+['อ',[[8,16,'g','โรงเรียน'],[17.5,19,'t','ชีวะ พี่วิเวียน'],[19.5,20.5,'k','การบ้าน'],[20.5,20+50/60,'c','ศัพท์']]],
+['พ',[[8,16,'g','โรงเรียน'],[17.5,19,'t','ฟิสิกส์ ป๋ามัก'],[19.5,21,'p','คณิต พี่ปั้น']]],
+['พฤ',[[8,16,'g','โรงเรียน'],[17.5,19,'t','ชีวะ พี่วิเวียน'],[19.5,20.5,'t','ทบทวนเคมี']]],
+['ศ',[[8,16,'g','โรงเรียน'],[17.5,18,'b','Quiz ท้ายบท'],[18,21,'n','พัก']]],
+['ส',[[9.5,12,'t','เคมี ครูอุ๊ (MBK)'],[12,15.5,'n','พัก / เดินทาง'],[15.5,19,'c','Dr. Ov (MBK)']]],
+['อา',[[9,10.5,'b','Weekly test (อา.สุดท้าย = Checkpoint 3 ชม.)'],[10.5,12,'k','ซ่อมจุดอ่อน'],[13,15,'k','ตามคลิปค้าง'],[15,21,'n','พัก']]]];
+const S0=7,H=30;
+$('plLegend').innerHTML=['g','t','p','c','k','b','n'].map(k=>`<span style="--sw:${v(C[k][0])}">${C[k][2]}</span>`).join('');
+let wg='<div></div>'+W.map(d=>`<div class="dh">${d[0]}</div>`).join('');
+let tm='';for(let x=S0;x<=21;x+=2)tm+=`<div style="position:absolute;top:${(x-S0)*H-8}px;right:4px;font-size:11px;color:var(--muted)">${String(x).padStart(2,'0')}:00</div>`;
+wg+=`<div style="position:relative;height:420px">${tm}</div>`;
+const tot={t:0,p:0,c:0,k:0,b:0};
+W.forEach(d=>{let b='';for(let x=S0;x<21;x++)b+=`<div style="position:absolute;left:0;right:0;top:${(x-S0)*H}px;border-top:1px solid var(--line)"></div>`;
+ d[1].forEach(([a,e,k,l])=>{if(k in tot)tot[k]+=e-a;b+=`<div class="blk${k==='b'?' eval':''}" style="top:${(a-S0)*H+1}px;height:${(e-a)*H-2}px;background:${v(C[k][0])};color:${v(C[k][1])}">${l}</div>`});
+ wg+=`<div class="wcol">${b}</div>`});
+$('plWeek').innerHTML=wg;
+const all=Object.values(tot).reduce((a,b)=>a+b,0);
+$('plMetrics').innerHTML=[['รวม/สัปดาห์',all],['วิทย์',tot.t],['คณิต',tot.p],['อังกฤษ',tot.c],['ทบทวน',tot.k],['ประเมินผล',tot.b]].map(([l,x])=>`<div class="metric"><div class="l">${l}</div><div class="v">${x.toFixed(1)} ชม.</div></div>`).join('');
+const M=['ต.ค.69','พ.ย.','ธ.ค.','ม.ค.70','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.','ม.ค.71','ก.พ.','มี.ค.','เม.ย.','พ.ค.'];
+const R=[['คณิต',[[0,7,'p','ม.5 T2 + ม.6 ทั้งหมด']]],['ฟิสิกส์',[[0,7,'t','ม.5 T2 + ม.6 ทั้งหมด']]],['เคมี',[[0,4,'t','ครูอุ๊'],[4,7,'t','Entrance รอบสด'],[12,13,'k','ตะลุย']]],['ชีวะ',[[0,7,'t','ม.5 T2 + ม.6 ทั้งหมด']]],['ไทย / สังคม',[[5,7.5,'s','รอบแรก']]],['อังกฤษ',[[0,18,'c','Dr. Ov ต่อเนื่อง + IELTS']]],
+['ม.6',[[7.5,12,'k','โจทย์ + TBAT + พอร์ต'],[12,15,'k','TPAT1 + ข้อสอบเก่า'],[15,18,'k','ซ้อมสอบ']]],
+['Mock',[[7,8,'b','≥60'],[10,11,'b','≥66'],[13,14,'b','≥70'],[16,17,'b','≥74']]],
+['สอบจริง',[[15,16,'c','TPAT1'],[17,18,'c','A-Level'],[19,20,'g','กสพท']]]];
+const w=100/20;
+let g=`<div></div><div style="position:relative;height:18px">${M.map((m,i)=>i%2?'':`<span style="position:absolute;left:${i*w}%;font-size:11px;color:var(--muted)">${m}</span>`).join('')}</div>`;
+R.forEach(([n,bs])=>{let ticks='';if(n==='Mock')for(let i=0;i<18;i++)ticks+=`<div style="position:absolute;left:${(i+0.88)*w}%;top:8px;width:3px;height:12px;border-radius:2px;background:var(--b-bd)"></div>`;
+ g+=`<div class="gl">${n}</div><div class="gr">${ticks}${bs.map(([a,e,k,l])=>`<div class="blk${k==='b'?' eval':''}" style="left:calc(${a*w}% + 1px);width:calc(${(e-a)*w}% - 2px);background:${v(C[k][0])};color:${v(C[k][1])}">${l}</div>`).join('')}<div style="position:absolute;left:${7.5*w}%;top:-4px;bottom:-4px;border-left:2px solid var(--danger)"></div></div>`});
+g+=`<div></div><div style="position:relative;height:18px"><span style="position:absolute;left:calc(${7.5*w}% + 4px);font-size:11px;color:var(--danger)">จบเนื้อหา 15 พ.ค. 70</span></div>`;
+$('plGantt').innerHTML=g;
+})();
+
+// ---------- GitHub settings form ----------
+(function(){
+ const c=ghCfg();$('ghOwner').value=c.owner;$('ghRepo').value=c.repo;$('ghBranch').value=c.branch;$('ghToken').value=c.token?'••••••••':'';
+ $('ghForm').addEventListener('submit',async e=>{e.preventDefault();
+  const old=ghCfg(),tk=$('ghToken').value.trim();
+  const n={owner:$('ghOwner').value.trim(),repo:$('ghRepo').value.trim(),branch:$('ghBranch').value.trim()||'main',token:tk==='••••••••'?old.token:tk};
+  if(!n.owner||!n.repo){$('ghErr').textContent='ใส่ Owner และ Repo';return}
+  $('ghErr').textContent='';ghSaveCfg(n);$('ghToken').value=n.token?'••••••••':'';
+  await ghLoad();toast(readOnly?'เชื่อมต่อแบบดูอย่างเดียว':'เชื่อมต่อ GitHub แล้ว');});
+ $('ghForget').onclick=()=>{const c=ghCfg();c.token='';ghSaveCfg(c);$('ghToken').value='';readOnly=true;setSync(false,'ดูอย่างเดียว');toast('ลบ token แล้ว')};
+ $('ghExport').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([snapshot()],{type:'application/json'}));a.download='dek71-data-'+todayISO()+'.json';a.click()};
+})();
+ghLoad();
+</script>
+</body>
+</html>
